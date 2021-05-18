@@ -1,4 +1,25 @@
-use iced::{Column, Text, Settings, Align, Element, Button, Sandbox, button};
+mod components {
+    pub mod alarm;
+}
+
+use iced::{
+    Align,
+    Length,
+    Column,
+    Row,
+    Container,
+    Text,
+    Settings,
+    Element,
+    Button,
+    Scrollable,
+    Space,
+    Sandbox,
+    button,
+    scrollable,
+};
+
+use components::alarm::{Alarm, Message as AlarmMessage};
 
 /*
 
@@ -16,19 +37,16 @@ pub fn main() -> iced::Result {
 }
 
 #[derive(Debug, Clone)]
-struct Alarm {
-    time: String
-}
-
-#[derive(Debug, Clone)]
 struct Application {
     alarm_create_button: button::State,
-    alarms: Vec<Alarm>
+    body_scrollable: scrollable::State,
+    alarms: Vec<Alarm>,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    AlarmCreate
+    Create,
+    Update(usize, AlarmMessage),
 }
 
 impl Sandbox for Application {
@@ -37,8 +55,9 @@ impl Sandbox for Application {
 
     fn new() -> Application {
         Application {
-            alarms: vec![Alarm{time:"5:00pm".to_string()}],
+            body_scrollable: scrollable::State::default(),
             alarm_create_button: button::State::default(),
+            alarms: vec![],
         }
     }
 
@@ -51,30 +70,50 @@ impl Sandbox for Application {
         message: Message,
     ) {
         match message {
-            Message::AlarmCreate => {
-                self.alarms.push(Alarm{time:"5:00pm".to_string()});
+            Message::Create => {
+                self.alarms.push(Alarm::new(String::from("5:00pm")));
+            },
+            Message::Update(index, alarm_message) => {
+                if let Some(alarm) = self.alarms.get_mut(index) {
+                    alarm.update(alarm_message);
+                }
             }
         }
     }
 
     fn view(&mut self) -> Element<Message> {
-        let alarms : Element<Message> = self.alarms
-                        .iter_mut()
-                        .enumerate()
-                        .fold(Column::new().spacing(20), |column, (i, alarm)| {
-                            column.push(
-                                Column::new()
-                                .push(Text::new(&alarm.time))
-                                .push(Text::new(format!("Alarm {}", i)))
-                            )
-                        })
-                        .into();
+        let alarms: Element<Message> = self.alarms
+            .iter_mut()
+            .enumerate()
+            .fold(Column::new().spacing(20), |column, (i, alarm)| {
+                column.push(alarm.view().map(move |message| {
+                    Message::Update(i, message)
+                }))
+            })
+            .into();
 
-        Column::new()
-            .align_items(Align::Center)
-            .padding(20)
-            .push(Button::new(&mut self.alarm_create_button, Text::new("Add Alarm")).on_press(Message::AlarmCreate))
-            .push(alarms)
+        let column: Column<Message> = Column::new()
+                    .align_items(Align::Center)
+                    .width(Length::Fill)
+                    .spacing(20)
+                    .max_width(640)
+                    .push(
+                        Row::new()
+                            .align_items(Align::Start)
+                            .width(Length::Fill)
+                            .push(Text::new("Alarms"))
+                            .push(Space::with_width(Length::Fill))
+                            .push(
+                                Button::new(&mut self.alarm_create_button, Text::new("Add Alarm")).on_press(Message::Create)
+                            )
+                    )
+                    .push(alarms);
+
+        Scrollable::new(&mut self.body_scrollable)
+            .padding(40)
+            .push(
+                Container::new(column).width(Length::Fill).center_x()
+            )
             .into()
     }
 }
