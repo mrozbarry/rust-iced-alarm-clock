@@ -74,8 +74,15 @@ impl Sandbox for Application {
                 self.alarms.push(Alarm::new(String::from("5:00pm")));
             },
             Message::Update(index, alarm_message) => {
-                if let Some(alarm) = self.alarms.get_mut(index) {
-                    alarm.update(alarm_message);
+                match alarm_message {
+                    AlarmMessage::Delete => {
+                        self.alarms.remove(index);
+                    },
+                    _ => {
+                        if let Some(alarm) = self.alarms.get_mut(index) {
+                            alarm.update(alarm_message);
+                        }
+                    },
                 }
             }
         }
@@ -86,9 +93,14 @@ impl Sandbox for Application {
             .iter_mut()
             .enumerate()
             .fold(Column::new().spacing(20), |column, (i, alarm)| {
-                column.push(alarm.view().map(move |message| {
-                    Message::Update(i, message)
-                }))
+                column.push(
+                    Row::new()
+                        .push(
+                            alarm.view().map(move |message| {
+                                Message::Update(i, message)
+                            })
+                        )
+                )
             })
             .into();
 
@@ -104,7 +116,7 @@ impl Sandbox for Application {
                             .push(Text::new("Alarms"))
                             .push(Space::with_width(Length::Fill))
                             .push(
-                                Button::new(&mut self.alarm_create_button, Text::new("Add Alarm")).on_press(Message::Create)
+                                Button::new(&mut self.alarm_create_button, Text::new("+")).on_press(Message::Create)
                             )
                     )
                     .push(alarms);

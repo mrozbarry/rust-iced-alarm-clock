@@ -7,6 +7,8 @@ use iced::{
     Checkbox,
     Space,
     Element,
+    Button,
+    button,
 };
 
 /*
@@ -21,11 +23,14 @@ pub struct Alarm {
     time: String,
     label: String,
     active: bool,
+
+    delete_button: button::State,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     Toggle(bool),
+    Delete,
 }
 
 impl Alarm {
@@ -34,6 +39,7 @@ impl Alarm {
             time: t.to_string(),
             label: "Alarm Label Here...".to_string(),
             active: false,
+            delete_button: button::State::default(),
         }
     }
 
@@ -45,6 +51,9 @@ impl Alarm {
             Message::Toggle(active) => {
                 self.active = active
             },
+            Message::Delete => {
+                // Noop here
+            }
         }
     }
 
@@ -60,7 +69,12 @@ impl Alarm {
             )
             .push(Space::with_width(Length::Fill))
             .push(
-                Checkbox::new(self.active, String::from("Active"), Message::Toggle)
+                Checkbox::new(self.active, String::from(""), Message::Toggle)
+            )
+            .push(
+                Button::new(&mut self.delete_button, Text::new("-"))
+                    .on_press(Message::Delete)
+
             )
             .into()
     }
